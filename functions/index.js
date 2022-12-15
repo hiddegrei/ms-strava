@@ -13,7 +13,7 @@ var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 
 //exchange auth token for access token
-app.post("/api/users/:userId/oauth/token",urlencodedParser, (req, res) => {
+app.post("/api/users/:userId/token/auth",urlencodedParser, (req, res) => {
 let params = {
   client_id: "74263",
   client_secret: "b388ec2403cbd89e5d10ea582266e30d28361fcb",
@@ -48,7 +48,7 @@ fetch("https://www.strava.com/oauth/token", {
   });
 });
 
-app.get("/api/users/:userId/oauth/refreshtoken", (req, res) => {});
+app.get("/api/users/:userId/token/refresh", (req, res) => {});
 
 //get activities
 app.get("/api/users/:userId/activities", (req, res) => {});
