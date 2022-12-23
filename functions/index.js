@@ -97,7 +97,7 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
     })
       .then((res) => res.json())
       .then((json) => {
-        //   console.log(json);
+           console.log(json);
 
         if (json.access_token) {
           admin
@@ -106,14 +106,15 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
             .doc(req.params.userId)
             .set({ accesToken: json.access_token, expires_at: json.expires_at, refresh_token: json.refresh_token })
             .catch((err) => console.log(err));
-          //   res.json({
-          //     accesToken: json.access_token,
-          //     expires_at: json.expires_at,
-          //     refresh_token: json.refresh_token,
-          //   });
-          res.json({
-            status: "succes",
-          });
+            res.json({
+              accesToken: json.access_token,
+              expires_at: json.expires_at,
+              refresh_token: json.refresh_token,
+            });
+          // res.json({
+          //   status: "succes",
+
+          // });
         }
       })
       .catch((err) => {
@@ -136,7 +137,26 @@ app.get("/api/users/:userId/activities", (req, res) => {
           .doc(req.params.userId)
           .get()
           .then((doc) => {
-            accessToken = doc.data().accesToken;
+            let now = Date.now();
+            if(now<=doc.data().expires_at){
+              accessToken = doc.data().accesToken;
+
+            }else{
+              fetch(`https://us-central1-ms-strava.cloudfunctions.net/app/api/users/${req.params.userId}/token/refresh`, {
+                method: "GET", // or 'PUT'
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                },
+              })
+                .then((res) => res.json())
+                .then((json) => {
+                  accessToken = json.accesToken;
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            }
+            
           })
           .then(() => {
             resolve("succes");
