@@ -6,6 +6,7 @@ const cors = require("cors")({ origin: true });
 const app = express();
 app.use(cors);
 const admin = require("firebase-admin");
+const { ref } = require("firebase-functions/v1/database");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 admin.initializeApp();
 var jsonParser = bodyParser.json();
@@ -67,10 +68,8 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
           .then((doc) => {
            
             refreshToken=doc.data().refresh_token
-          })
-          .then(() => {
-
             resolve("succes");
+           
           })
           .catch((err) => {
             console.log(err);
@@ -81,6 +80,7 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
       const x = await resolveAfterEnd();
     }
     async function f2(){
+      console.log(refreshToken,"83")
     let params = {
       client_id: "74263",
       client_secret: "b388ec2403cbd89e5d10ea582266e30d28361fcb",
@@ -104,13 +104,15 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
             .firestore()
             .collection("users")
             .doc(req.params.userId)
-            .set({ accesToken: json.access_token, expires_at: json.expires_at, refresh_token: json.refresh_token })
+            .set({ accesToken: json.access_token, expires_at: json.expires_at, refresh_token: json.refresh_token }).then((doc)=>{
+              res.json({
+                accesToken: json.access_token,
+                expires_at: json.expires_at,
+                refresh_token: json.refresh_token,
+              });
+            })
             .catch((err) => console.log(err));
-            res.json({
-              accesToken: json.access_token,
-              expires_at: json.expires_at,
-              refresh_token: json.refresh_token,
-            });
+           
           // res.json({
           //   status: "succes",
 
@@ -128,7 +130,38 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
 
 //get activities
 app.get("/api/users/:userId/activities", (req, res) => {
-    let accessToken = "";
+  let accessToken = "";
+  function resolveAfterEndRefresh() {
+    return new Promise((resolve) => {
+      fetch(`https://us-central1-ms-strava.cloudfunctions.net/app/api/users/${req.params.userId}/token/refresh`, {
+                method: "GET", // or 'PUT'
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                },
+              })
+                .then((res) => res.json())
+                .then((json) => {
+                  accessToken = json.accesToken;
+                  admin
+                  .firestore()
+                  .collection("users")
+                  .doc(req.params.userId)
+                  .set({ accesToken: json.access_token, expires_at: json.expires_at, refresh_token: json.refresh_token })
+                  .catch((err) => console.log(err));
+                  resolve("succes")
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+               
+
+    })}
+
+    async function fRefresh() {
+      const x = await resolveAfterEndRefresh();
+    }
+
+   
     function resolveAfterEnd() {
       return new Promise((resolve) => {
         admin
@@ -138,23 +171,15 @@ app.get("/api/users/:userId/activities", (req, res) => {
           .get()
           .then((doc) => {
             let now = Date.now();
-            if(now<=doc.data().expires_at){
+            console.log(now<=doc.data().expires_at,"173")
+            // accessToken = doc.data().accesToken;
+            if(now>=doc.data().expires_at){
               accessToken = doc.data().accesToken;
 
             }else{
-              fetch(`https://us-central1-ms-strava.cloudfunctions.net/app/api/users/${req.params.userId}/token/refresh`, {
-                method: "GET", // or 'PUT'
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-                },
-              })
-                .then((res) => res.json())
-                .then((json) => {
-                  accessToken = json.accesToken;
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
+              fRefresh()
+              
+               
             }
             
           })
