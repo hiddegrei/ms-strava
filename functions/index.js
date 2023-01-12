@@ -84,7 +84,7 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
     let params = {
       client_id: "74263",
       client_secret: "b388ec2403cbd89e5d10ea582266e30d28361fcb",
-      code: refreshToken,
+      refresh_token: refreshToken,
       grant_type: "refresh_token",
     };
 
@@ -117,7 +117,12 @@ app.get("/api/users/:userId/token/refresh", (req, res) => {
           //   status: "succes",
 
           // });
+        }else{
+          res.json({
+           error:"something went werong"
+          });
         }
+
       })
       .catch((err) => {
         res.json(err);
@@ -223,5 +228,8 @@ app.get("/api/users/:userId/activities", (req, res) => {
       f2();
     });
 });
+
+
+
 
 exports.app = functions.https.onRequest(app);
